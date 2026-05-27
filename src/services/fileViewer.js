@@ -260,3 +260,6 @@ export function readFileAsDataURL(file) {
     reader.readAsDataURL(file)
   })
 }
+
+// generatePdfThumbnail - временно отключена из-за проблем бандлинга pdfjs-dist
+// Для PDF отображается стандартная иконка с бейджем

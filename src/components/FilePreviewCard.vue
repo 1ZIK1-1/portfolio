@@ -19,8 +19,26 @@ const isPdf = computed(() => ext.value === 'pdf')
 const isText = computed(() => ['txt', 'csv', 'json', 'xml', 'html', 'css', 'js', 'vue', 'py', 'php', 'md', 'log'].includes(ext.value))
 const isOffice = computed(() => ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext.value))
 
+const resolvedContent = computed(() => {
+  if (props.fileData) return props.fileData
+  if (props.achievementId && props.fileName) {
+    try {
+      return getFileContent(props.achievementId, props.fileName)
+    } catch { return null }
+  }
+  return null
+})
+
 const thumbnailUrl = computed(() => {
-  if (props.fileData && isImage.value) return props.fileData
+  // Сначала ищем сохранённую миниатюру (например, для PDF)
+  if (props.achievementId && props.fileName) {
+    try {
+      const thumb = getFileContent(props.achievementId, props.fileName + '_thumb')
+      if (thumb) return thumb
+    } catch {}
+  }
+  // Для изображений используем сам файл
+  if (resolvedContent.value && isImage.value) return resolvedContent.value
   return null
 })
 
@@ -62,10 +80,14 @@ const cardStyle = computed(() => ({
 <template>
   <div class="file-card" :style="cardStyle" :class="{ removable }" @click="handleClick">
     <!-- Thumbnail / Icon area -->
-    <div class="file-thumb">
-      <img v-if="thumbnailUrl" :src="thumbnailUrl" :alt="fileName" class="thumb-img" />
-      <div v-else class="file-icon">{{ fileIcon }}</div>
-      <div v-if="isPdf" class="pdf-badge">PDF</div>
+    <div class="file-thumb-area">
+      <div class="file-thumb">
+        <img v-if="thumbnailUrl" :src="thumbnailUrl" :alt="fileName" class="thumb-img" />
+        <div v-else class="file-icon">{{ fileIcon }}</div>
+      </div>
+      <div v-if="isPdf" class="format-badge pdf">PDF</div>
+      <div v-else-if="isOffice" class="format-badge" :class="{ doc: ext.value.startsWith('doc'), xls: ext.value.startsWith('xls'), ppt: ext.value.startsWith('ppt') }">{{ ext.toUpperCase() }}</div>
+      <div v-else-if="isText" class="format-badge text">TXT</div>
     </div>
 
     <!-- File info -->
@@ -110,17 +132,23 @@ const cardStyle = computed(() => ({
   padding-right: 36px;
 }
 
+.file-thumb-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
 .file-thumb {
   width: 42px;
   height: 42px;
   border-radius: 8px;
   overflow: hidden;
-  flex-shrink: 0;
   background: #eef0ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 }
 
 .thumb-img {
@@ -133,19 +161,20 @@ const cardStyle = computed(() => ({
   font-size: 20px;
 }
 
-.pdf-badge {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(239, 68, 68, 0.85);
-  color: white;
+.format-badge {
   font-size: 8px;
   font-weight: 700;
-  text-align: center;
-  padding: 1px 0;
-  letter-spacing: 0.5px;
+  color: white;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
 }
+.format-badge.pdf { background: rgba(239, 68, 68, 0.85); }
+.format-badge.doc { background: rgba(37, 99, 235, 0.85); }
+.format-badge.xls { background: rgba(22, 163, 74, 0.85); }
+.format-badge.ppt { background: rgba(234, 88, 12, 0.85); }
+.format-badge.text { background: rgba(107, 114, 128, 0.85); }
 
 .file-info {
   flex: 1;

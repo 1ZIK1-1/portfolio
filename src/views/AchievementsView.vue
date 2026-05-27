@@ -30,7 +30,6 @@ async function handleFileUpload(event) {
       const dataURL = await readFileAsDataURL(file)
       const newIdx = newAchievement.value.newFiles.length
       newAchievement.value.newFiles.push({ name: file.name, data: dataURL })
-      // Сразу открываем предпросмотр с кнопками подтверждения
       previewFileData.value = { fileName: file.name, content: dataURL }
       previewConfirmMode.value = true
       pendingFileIndex.value = newIdx
@@ -68,7 +67,9 @@ async function addAchievement() {
   const achievementData = { title: newAchievement.value.title, type: newAchievement.value.type, category: newAchievement.value.category, date: newAchievement.value.date, description: newAchievement.value.description, skills: newAchievement.value.skills.split(',').map(s => s.trim()).filter(Boolean), level: newAchievement.value.level }
   achievementData.files = newAchievement.value.newFiles.map(f => f.name)
   const saved = achievementStore.addAchievement(achievementData, state.user?.id, state.user?.name, state.user?.group)
-  for (const file of newAchievement.value.newFiles) { saveFileContent(saved.id, file.name, file.data) }
+  for (const file of newAchievement.value.newFiles) {
+    saveFileContent(saved.id, file.name, file.data)
+  }
   achievements.value.unshift(saved)
   showAddModal.value = false
   newAchievement.value = { title: '', type: 'education', category: 'Учебная деятельность', description: '', level: 'вузовский', date: new Date().toISOString().split('T')[0], skills: '', newFiles: [] }
@@ -119,7 +120,12 @@ function cancelFileAdd() {
     <div v-if="isLoading" class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>
     <div v-else class="achievements-grid">
       <div v-for="item in filteredAchievements" :key="item.id" class="achievement-card" @click="selectedAchievement = item">
-        <div class="card-type-icon">{{ { science: '🔬', education: '📚', social: '🤝', sport: '⚽', creative: '🎨' }[item.type] || '📌' }}</div>
+        <div class="card-type-icon">
+          <template v-if="item.files && item.files.length > 0">
+            <FilePreviewCard :fileName="item.files[0]" :achievementId="item.id" :clickable="false" style="width:44px;height:44px;padding:0;border:none;background:transparent;border-radius:0" />
+          </template>
+          <template v-else>{{ { science: '🔬', education: '📚', social: '🤝', sport: '⚽', creative: '🎨' }[item.type] || '📌' }}</template>
+        </div>
         <div class="card-content"><div class="card-title">{{ item.title }}</div><div class="card-meta"><span class="card-category">{{ item.category }}</span><span class="card-level">{{ getLevelLabel(item.level) }}</span><span class="card-date">{{ item.date }}</span></div><div class="card-skills"><span v-for="skill in item.skills" :key="skill" class="skill-chip">{{ skill }}</span></div></div>
         <div class="card-status"><span :class="'status-badge status-' + item.status">{{ getStatusLabel(item.status) }}</span><span v-if="item.source === 'moodle'" class="moodle-badge">Moodle</span></div>
         <button class="delete-btn" @click.stop="deleteAchievement(item.id)" title="Удалить">🗑️</button>
