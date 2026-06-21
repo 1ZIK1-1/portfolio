@@ -25,7 +25,7 @@ const resolvedContent = computed(() => {
     try {
       return getFileContent(props.achievementId, props.fileName)
     } catch { return null }
-  }
+  }``
   return null
 })
 
